@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Água e Creatina</title>
+  <meta name="theme-color" content="#0e1311" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Água e Creatina" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0e1311; --surface:#161d1a; --rule:#27312d; --text:#ece8dc; --muted:#8f9b94;
+      --sage:#86cba0; --sage-ink:#0b1a12; --agua:#7cb7e8; --lamp:#e6b85c; --lamp-ink:#241903;
+      --serif:'Lora',Georgia,serif; --sans:'Inter',system-ui,sans-serif; color-scheme:dark;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+    button, input { font:inherit; color:inherit; }
+    :focus-visible { outline:2px solid var(--lamp); outline-offset:2px; }
+    main { max-width:560px; margin:0 auto; padding:calc(env(safe-area-inset-top,0px) + 20px) 16px calc(env(safe-area-inset-bottom,0px) + 40px); }
+    h1 { margin:0; font-family:var(--serif); font-size:1.35rem; }
+    .data { margin:4px 0 20px; color:var(--muted); font-size:.9rem; }
+    .card { background:var(--surface); border:1px solid var(--rule); border-radius:20px; padding:20px; margin-bottom:16px; }
+    .card.ok { border-left:4px solid var(--sage); }
+    .rotulo { margin:0 0 6px; color:var(--muted); font-size:.85rem; }
+    .grande { margin:0; font-family:var(--serif); font-weight:600; font-size:2.4rem; font-variant-numeric:tabular-nums; }
+    .grande small { font-family:var(--sans); font-weight:400; font-size:.95rem; color:var(--muted); margin-left:6px; }
+    .barra { height:10px; background:var(--rule); border-radius:10px; overflow:hidden; margin:14px 0 16px; }
+    .barra div { height:100%; width:0; background:var(--agua); transition:width .5s ease; }
+    .card.ok .barra div { background:var(--sage); }
+    .botoes { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .btn { min-height:48px; border-radius:14px; border:1px solid var(--rule); background:transparent; cursor:pointer; font-weight:600; }
+    .btn.agua { border-color:var(--agua); color:var(--agua); }
+    .btn.agua:active { background:var(--agua); color:#0a1620; }
+    .linha { display:flex; gap:16px; margin-top:12px; }
+    .quieto { background:none; border:none; color:var(--muted); font-size:.85rem; padding:6px 0; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+    .cre { width:100%; min-height:56px; border-radius:14px; border:2px solid var(--lamp); background:transparent; color:var(--lamp); font-weight:600; font-size:1rem; cursor:pointer; }
+    .cre.feito { background:var(--sage); border-color:var(--sage); color:var(--sage-ink); }
+    .seq { color:var(--muted); font-size:.85rem; margin:12px 0 0; }
+    .area { position:relative; height:130px; margin-top:22px; display:grid; grid-template-columns:repeat(7,1fr); gap:8px; align-items:end; border-bottom:1px solid var(--rule); }
+    .bar-d { position:relative; background:var(--agua); border-radius:8px 8px 0 0; min-height:2px; transition:height .5s ease; }
+    .bar-d.ok { background:var(--sage); }
+    .bar-d .val { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); font-size:.7rem; color:var(--muted); padding-bottom:3px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .meta-linha { position:absolute; left:0; right:0; border-top:1.5px dashed var(--lamp); opacity:.75; pointer-events:none; }
+    .rotulos { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:8px; text-align:center; font-size:.75rem; color:var(--muted); }
+    .rot { display:flex; flex-direction:column; align-items:center; gap:6px; }
+    .rot.hoje { color:var(--text); font-weight:600; }
+    h2 { font-size:.95rem; margin:24px 0 10px; }
+    .hist { list-style:none; margin:0; padding:0; }
+    .hist li { display:grid; grid-template-columns:84px 1fr 64px 14px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--rule); font-size:.85rem; }
+    .hist .mini { height:6px; background:var(--rule); border-radius:6px; overflow:hidden; }
+    .hist .mini div { height:100%; background:var(--agua); }
+    .hist .mini.ok div { background:var(--sage); }
+    .hist .ml { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .ponto { width:10px; height:10px; border-radius:50%; border:2px solid var(--rule); }
+    .ponto.on { background:var(--lamp); border-color:var(--lamp); }
+    details { margin-top:24px; color:var(--muted); font-size:.9rem; }
+    summary { cursor:pointer; }
+    .ajustes { display:grid; grid-template-columns:1fr 110px; gap:10px 12px; align-items:center; margin:12px 0; }
+    input[type=number] { background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:8px 10px; width:100%; }
+    @media (prefers-reduced-motion:reduce){ * { transition:none !important; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Água e Creatina</h1>
+  <p class="data" id="data"></p>
+
+  <section class="card" id="cardAgua">
+    <p class="rotulo">Água hoje</p>
+    <p class="grande"><span id="ml">0</span><small id="meta"></small></p>
+    <div class="barra" id="barra"><div id="barraIn"></div></div>
+    <div class="botoes">
+      <button class="btn agua" data-ml="200">+200 ml</button>
+      <button class="btn agua" data-ml="300">+300 ml</button>
+      <button class="btn agua" data-ml="500">+500 ml</button>
+    </div>
+    <div class="linha">
+      <button class="quieto" id="outro">Outro valor</button>
+      <button class="quieto" id="desfazer">Desfazer último</button>
+    </div>
+    <p class="seq" id="seqAgua"></p>
+  </section>
+
+  <section class="card" id="cardCre">
+    <p class="rotulo" id="creRotulo">Creatina</p>
+    <button class="cre" id="cre"></button>
+    <p class="seq" id="seqCre"></p>
+  </section>
+
+  <h2>Últimos 7 dias</h2>
+  <section class="card">
+    <div class="area" id="area"></div>
+    <div class="rotulos" id="rotulos"></div>
+    <p class="seq" id="resumoSemana"></p>
+    <p class="seq">A linha tracejada é a meta de água e o ponto amarelo marca a creatina tomada.</p>
+  </section>
+
+  <h2>Últimos 14 dias</h2>
+  <ul class="hist" id="hist"></ul>
+
+  <details>
+    <summary>Ajustes e backup</summary>
+    <div class="ajustes">
+      <label for="inMeta">Meta de água (ml)</label><input type="number" id="inMeta" min="500" step="100">
+      <label for="inDose">Dose de creatina (g)</label><input type="number" id="inDose" min="1" step="0.5">
+    </div>
+    <button class="quieto" id="exp">Exportar dados</button>
+    <button class="quieto" id="imp">Importar dados</button>
+    <input type="file" id="arq" accept="application/json" hidden>
+  </details>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const S = {
+    get(k){ try { return localStorage.getItem(k); } catch { return null; } },
+    set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+    keys(){ try { return Object.keys(localStorage); } catch { return []; } }
+  };
+  const cfg = () => ({ meta: +S.get("agua-cfg-meta") || 2500, dose: +S.get("agua-cfg-dose") || 5 });
+  const chave = (d) => `agua-dia-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const ler = (d) => { try { return JSON.parse(S.get(chave(d))) || { a: [], c: false }; } catch { return { a: [], c: false }; } };
+  const gravar = (d, v) => S.set(chave(d), JSON.stringify(v));
+  const soma = (v) => v.a.reduce((x, y) => x + y, 0);
+  const fmt = (n) => n.toLocaleString("pt-BR");
+  const diasAtras = (n) => { const d = new Date(hoje); d.setDate(d.getDate() - n); return d; };
+  let hoje = new Date();
+
+  function sequencia(ok) {
+    let i = ok(ler(hoje)) ? 0 : 1, n = 0; // hoje ainda não quebra a sequência
+    while (i < 400 && ok(ler(diasAtras(i)))) { n++; i++; }
+    return n;
+  }
+  const textoSeq = (n, o) => n >= 2 ? `🔥 ${n} dias seguidos ${o}` : "";
+
+  function render() {
+    const { meta, dose } = cfg();
+    const dia = ler(hoje), total = soma(dia), bateu = total >= meta;
+
+    $("data").textContent = hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+    $("ml").textContent = fmt(total) + " ml";
+    $("meta").textContent = bateu ? "meta batida ✓" : `de ${fmt(meta)} ml`;
+    $("barraIn").style.width = Math.min(100, total / meta * 100) + "%";
+    $("cardAgua").classList.toggle("ok", bateu);
+    $("seqAgua").textContent = textoSeq(sequencia((v) => soma(v) >= meta), "batendo a meta");
+
+    $("creRotulo").textContent = `Creatina (${dose} g)`;
+    $("cre").textContent = dia.c ? "Tomada hoje ✓ (toque para desfazer)" : "Marcar creatina como tomada";
+    $("cre").classList.toggle("feito", dia.c);
+    $("seqCre").textContent = textoSeq(sequencia((v) => v.c), "tomando creatina");
+
+    $("hist").innerHTML = Array.from({ length: 14 }, (_, i) => {
+      const d = diasAtras(i), v = ler(d), s = soma(v);
+      const nome = i === 0 ? "Hoje" : i === 1 ? "Ontem" : d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" });
+      return `<li><span>${nome}</span><div class="mini ${s >= meta ? "ok" : ""}"><div style="width:${Math.min(100, s / meta * 100)}%"></div></div><span class="ml">${fmt(s)} ml</span><span class="ponto ${v.c ? "on" : ""}" title="creatina"></span></li>`;
+    }).join("");
+
+
+    // ----- Gráfico dos últimos 7 dias -----
+    const sem = Array.from({ length: 7 }, (_, i) => { const d = diasAtras(6 - i), v = ler(d); return { d, v, s: soma(v) }; });
+    const esc = Math.max(meta * 1.15, ...sem.map((x) => x.s * 1.1));
+    const litros = (n) => (n / 1000).toFixed(1).replace(".", ",") + " L";
+    $("area").innerHTML = `<div class="meta-linha" style="bottom:${meta / esc * 100}%"></div>` +
+      sem.map((x) => `<div class="bar-d ${x.s >= meta ? "ok" : ""}" style="height:${x.s / esc * 100}%">${x.s ? `<span class="val">${litros(x.s)}</span>` : ""}</div>`).join("");
+    $("rotulos").innerHTML = sem.map((x, i) =>
+      `<div class="rot ${i === 6 ? "hoje" : ""}"><span>${x.d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}</span><span class="ponto ${x.v.c ? "on" : ""}"></span></div>`).join("");
+    const media = Math.round(sem.reduce((a, x) => a + x.s, 0) / 7);
+    $("resumoSemana").textContent = `Média de ${fmt(media)} ml por dia. Meta batida em ${sem.filter((x) => x.s >= meta).length} de 7 dias e creatina em ${sem.filter((x) => x.v.c).length} de 7.`;
+
+    $("inMeta").value = meta;
+    $("inDose").value = dose;
+  }
+
+  function addAgua(ml) {
+    const d = ler(hoje); d.a.push(ml); gravar(hoje, d);
+    if (navigator.vibrate) navigator.vibrate(15);
+    render();
+  }
+
+  document.querySelectorAll("[data-ml]").forEach((b) => b.addEventListener("click", () => addAgua(+b.dataset.ml)));
+  $("outro").addEventListener("click", () => {
+    const n = parseInt(prompt("Quantos ml?"), 10);
+    if (n > 0 && n <= 5000) addAgua(n);
+  });
+  $("desfazer").addEventListener("click", () => { const d = ler(hoje); d.a.pop(); gravar(hoje, d); render(); });
+  $("cre").addEventListener("click", () => { const d = ler(hoje); d.c = !d.c; gravar(hoje, d); if (d.c && navigator.vibrate) navigator.vibrate(15); render(); });
+
+  $("inMeta").addEventListener("change", (e) => { if (+e.target.value > 0) S.set("agua-cfg-meta", e.target.value); render(); });
+  $("inDose").addEventListener("change", (e) => { if (+e.target.value > 0) S.set("agua-cfg-dose", e.target.value); render(); });
+
+  $("exp").addEventListener("click", () => {
+    const out = {}; S.keys().filter((k) => k.startsWith("agua-")).forEach((k) => (out[k] = S.get(k)));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+    a.download = "agua-creatina-backup.json"; a.click(); URL.revokeObjectURL(a.href);
+  });
+  $("imp").addEventListener("click", () => $("arq").click());
+  $("arq").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      Object.entries(JSON.parse(await f.text())).forEach(([k, v]) => k.startsWith("agua-") && S.set(k, String(v)));
+      render(); alert("Dados importados!");
+    } catch { alert("Arquivo inválido."); }
+    e.target.value = "";
+  });
+
+  // Virou o dia com o app aberto? Atualiza sozinho.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && new Date().toDateString() !== hoje.toDateString()) { hoje = new Date(); render(); }
+  });
+
+  render();
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+</script>
+</body>
+</html>
