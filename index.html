@@ -51,6 +51,7 @@
     .rotulos { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:8px; text-align:center; font-size:.75rem; color:var(--muted); }
     .rot { display:flex; flex-direction:column; align-items:center; gap:6px; }
     .rot.hoje { color:var(--text); font-weight:600; }
+    .status { margin:-12px 0 16px; font-size:.75rem; color:var(--muted); min-height:1em; }
     h2 { font-size:.95rem; margin:24px 0 10px; }
     .hist { list-style:none; margin:0; padding:0; }
     .hist li { display:grid; grid-template-columns:84px 1fr 64px 14px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--rule); font-size:.85rem; }
@@ -71,6 +72,7 @@
 <main>
   <h1>Água e Creatina</h1>
   <p class="data" id="data"></p>
+  <p class="status" id="status"></p>
 
   <section class="card" id="cardAgua">
     <p class="rotulo">Água hoje</p>
@@ -122,12 +124,13 @@
   const S = {
     get(k){ try { return localStorage.getItem(k); } catch { return null; } },
     set(k,v){ try { localStorage.setItem(k,v); } catch {} },
+    del(k){ try { localStorage.removeItem(k); } catch {} },
     keys(){ try { return Object.keys(localStorage); } catch { return []; } }
   };
   const cfg = () => ({ meta: +S.get("agua-cfg-meta") || 2500, dose: +S.get("agua-cfg-dose") || 5 });
   const chave = (d) => `agua-dia-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   const ler = (d) => { try { return JSON.parse(S.get(chave(d))) || { a: [], c: false }; } catch { return { a: [], c: false }; } };
-  const gravar = (d, v) => S.set(chave(d), JSON.stringify(v));
+  const gravar = (d, v) => { v.t = Date.now(); S.set(chave(d), JSON.stringify(v)); empurrarDia(chave(d).slice(9), v); };
   const soma = (v) => v.a.reduce((x, y) => x + y, 0);
   const fmt = (n) => n.toLocaleString("pt-BR");
   const diasAtras = (n) => { const d = new Date(hoje); d.setDate(d.getDate() - n); return d; };
@@ -192,11 +195,12 @@
   $("desfazer").addEventListener("click", () => { const d = ler(hoje); d.a.pop(); gravar(hoje, d); render(); });
   $("cre").addEventListener("click", () => { const d = ler(hoje); d.c = !d.c; gravar(hoje, d); if (d.c && navigator.vibrate) navigator.vibrate(15); render(); });
 
-  $("inMeta").addEventListener("change", (e) => { if (+e.target.value > 0) S.set("agua-cfg-meta", e.target.value); render(); });
-  $("inDose").addEventListener("change", (e) => { if (+e.target.value > 0) S.set("agua-cfg-dose", e.target.value); render(); });
+  const salvarCfg = (k, e) => { if (+e.target.value > 0) { S.set(k, e.target.value); S.set("agua-cfg-t", Date.now()); empurrarCfg(); } render(); };
+  $("inMeta").addEventListener("change", (e) => salvarCfg("agua-cfg-meta", e));
+  $("inDose").addEventListener("change", (e) => salvarCfg("agua-cfg-dose", e));
 
   $("exp").addEventListener("click", () => {
-    const out = {}; S.keys().filter((k) => k.startsWith("agua-")).forEach((k) => (out[k] = S.get(k)));
+    const out = {}; S.keys().filter((k) => k.startsWith("agua-") && k !== "agua-senha").forEach((k) => (out[k] = S.get(k)));
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
     a.download = "agua-creatina-backup.json"; a.click(); URL.revokeObjectURL(a.href);
@@ -205,8 +209,8 @@
   $("arq").addEventListener("change", async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try {
-      Object.entries(JSON.parse(await f.text())).forEach(([k, v]) => k.startsWith("agua-") && S.set(k, String(v)));
-      render(); alert("Dados importados!");
+      Object.entries(JSON.parse(await f.text())).forEach(([k, v]) => k.startsWith("agua-") && k !== "agua-senha" && S.set(k, String(v)));
+      render(); puxar(); alert("Dados importados!");
     } catch { alert("Arquivo inválido."); }
     e.target.value = "";
   });
@@ -216,7 +220,62 @@
     if (!document.hidden && new Date().toDateString() !== hoje.toDateString()) { hoje = new Date(); render(); }
   });
 
+  // ---------- Sincronização com a Vercel (o app continua funcionando offline) ----------
+  const status = (t) => { $("status").textContent = t; };
+  async function chamar(corpo) {
+    let senha = S.get("agua-senha");
+    if (!senha) {
+      senha = prompt("Seu código de acesso (peça a quem te passou o link):");
+      if (!senha) throw new Error("sem senha");
+      S.set("agua-senha", senha);
+    }
+    const r = await fetch("/api/sync", {
+      method: corpo ? "POST" : "GET",
+      headers: { "Content-Type": "application/json", "x-senha": senha },
+      body: corpo ? JSON.stringify(corpo) : undefined
+    });
+    if (r.status === 401) { S.del("agua-senha"); throw new Error("senha errada"); }
+    if (!r.ok) throw new Error("erro " + r.status);
+    return r.json();
+  }
+  const ok = () => status("Sincronizado ✓");
+  const falhou = (e) => status(e.message === "senha errada" ? "Código incorreto. Recarregue a página para tentar de novo." : "Sem conexão com o servidor: salvo só neste aparelho por enquanto.");
+  const empurrarDia = (data, valor) => chamar({ tipo: "dia", data, valor }).then(ok).catch(falhou);
+  const corpoCfg = () => ({ tipo: "cfg", meta: cfg().meta, dose: cfg().dose, t: +S.get("agua-cfg-t") || Date.now() });
+  const empurrarCfg = () => chamar(corpoCfg()).then(ok).catch(falhou);
+
+  // Junta o que está no servidor com o que está no aparelho (vence o mais recente, dia a dia)
+  let sincronizando = false;
+  async function puxar() {
+    if (sincronizando) return;
+    sincronizando = true;
+    try {
+      status("Sincronizando…");
+      const { dias = {}, cfg: rc = {} } = await chamar();
+      const locais = {};
+      S.keys().filter((k) => k.startsWith("agua-dia-")).forEach((k) => { try { locais[k.slice(9)] = JSON.parse(S.get(k)); } catch {} });
+      const envios = [];
+      for (const [data, v] of Object.entries(dias)) {
+        const l = locais[data];
+        if (!l || (v.t || 0) > (l.t || 0)) S.set("agua-dia-" + data, JSON.stringify(v));
+      }
+      for (const [data, l] of Object.entries(locais)) {
+        const v = dias[data];
+        if (!v || (l.t || 0) > (v.t || 0)) envios.push(chamar({ tipo: "dia", data, valor: l }));
+      }
+      const tl = +S.get("agua-cfg-t") || 0, tr = +rc.t || 0;
+      if (tr > tl) { S.set("agua-cfg-meta", rc.meta); S.set("agua-cfg-dose", rc.dose); S.set("agua-cfg-t", tr); }
+      else if (tl > tr) envios.push(chamar(corpoCfg()));
+      await Promise.all(envios);
+      render(); ok();
+    } catch (e) { falhou(e); }
+    finally { sincronizando = false; }
+  }
+  window.addEventListener("online", puxar);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) puxar(); });
+
   render();
+  puxar();
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
   }
